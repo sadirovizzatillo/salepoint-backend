@@ -1,0 +1,338 @@
+{
+  "info": {
+    "name": "POS — Console (Super Admin)",
+    "_postman_id": "pos-console-001",
+    "description": "Super Admin module: shop management, user management, subscriptions. All requests hit /api/v1. Set {{baseUrl}} = http://localhost:3000",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "shopId", "value": "" },
+    { "key": "userId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (Super Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"superadmin@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/refresh", "host": ["{{baseUrl}}"], "path": ["auth", "refresh"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] }
+          }
+        },
+        {
+          "name": "Logout All Sessions",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/logout-all", "host": ["{{baseUrl}}"], "path": ["auth", "logout-all"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Console — Shops",
+      "item": [
+        {
+          "name": "Create Shop",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('shopId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Coffee Shop\",\n  \"address\": \"123 Main St\",\n  \"phone\": \"+998901234567\",\n  \"email\": \"shop@example.com\",\n  \"logoUrl\": \"\",\n  \"subscriptionExpiresAt\": \"2026-12-31T23:59:59.000Z\",\n  \"cashierLimit\": 5\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/console/shops", "host": ["{{baseUrl}}"], "path": ["console", "shops"] }
+          }
+        },
+        {
+          "name": "List All Shops",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/console/shops?page=1&limit=10&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["console", "shops"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Shop by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/console/shops/{{shopId}}", "host": ["{{baseUrl}}"], "path": ["console", "shops", "{{shopId}}"] }
+          }
+        },
+        {
+          "name": "Update Shop",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Shop Name\",\n  \"address\": \"456 New St\",\n  \"phone\": \"+998901234567\",\n  \"email\": \"updated@example.com\",\n  \"logoUrl\": \"\",\n  \"subscriptionExpiresAt\": \"2027-01-01T00:00:00.000Z\",\n  \"cashierLimit\": 10,\n  \"subscriptionStatus\": \"active\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/console/shops/{{shopId}}", "host": ["{{baseUrl}}"], "path": ["console", "shops", "{{shopId}}"] }
+          }
+        },
+        {
+          "name": "Suspend Shop",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/console/shops/{{shopId}}/suspend", "host": ["{{baseUrl}}"], "path": ["console", "shops", "{{shopId}}", "suspend"] }
+          }
+        },
+        {
+          "name": "Activate Shop",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/console/shops/{{shopId}}/activate", "host": ["{{baseUrl}}"], "path": ["console", "shops", "{{shopId}}", "activate"] }
+          }
+        },
+        {
+          "name": "Delete Shop",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/console/shops/{{shopId}}", "host": ["{{baseUrl}}"], "path": ["console", "shops", "{{shopId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Console — Shop Users",
+      "item": [
+        {
+          "name": "Create User in Shop",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('userId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Owner\",\n  \"email\": \"owner@example.com\",\n  \"password\": \"password123\",\n  \"roles\": [\"shop_owner\"]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/console/shops/{{shopId}}/users", "host": ["{{baseUrl}}"], "path": ["console", "shops", "{{shopId}}", "users"] }
+          }
+        },
+        {
+          "name": "List Users in Shop",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/console/shops/{{shopId}}/users", "host": ["{{baseUrl}}"], "path": ["console", "shops", "{{shopId}}", "users"] }
+          }
+        },
+        {
+          "name": "Remove User from Shop",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/console/shops/{{shopId}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["console", "shops", "{{shopId}}", "users", "{{userId}}"] }
+          }
+        },
+        {
+          "name": "Set Shop Limit for User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopLimit\": 5\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/console/users/{{userId}}/shop-limit", "host": ["{{baseUrl}}"], "path": ["console", "users", "{{userId}}", "shop-limit"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users (Global)",
+      "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Admin\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"password123\",\n  \"roles\": [\"admin\"],\n  \"avatarUrl\": \"\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=10&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\",\n  \"roles\": [\"admin\"],\n  \"isActive\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        },
+        {
+          "name": "Liveness Probe",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health/live", "host": ["{{baseUrl}}"], "path": ["health", "live"] }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,957 @@
+{
+  "info": {
+    "name": "POS — Shop Owner",
+    "_postman_id": "pos-shopowner-002",
+    "description": "Shop Owner module: manage own shops, staff, products, categories, inventory, orders, payments, customers, debts, reports, dashboard. Set {{baseUrl}} = http://localhost:3000/api/v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "preAuthToken", "value": "" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "shopId", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "orderId", "value": "" },
+    { "key": "paymentId", "value": "" },
+    { "key": "customerId", "value": "" },
+    { "key": "debtId", "value": "" },
+    { "key": "shiftId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Step 1 — Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.preAuthToken) {",
+                  "  pm.collectionVariables.set('preAuthToken', json.preAuthToken);",
+                  "  console.log('Shops available:', JSON.stringify(json.shops));",
+                  "}",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"owner@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Step 2 — Select Shop",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "  if (json.user && json.user.shopId) pm.collectionVariables.set('shopId', json.user.shopId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{preAuthToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopId\": \"{{shopId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/select-shop", "host": ["{{baseUrl}}"], "path": ["auth", "select-shop"] }
+          }
+        },
+        {
+          "name": "Switch Shop",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopId\": \"{{shopId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/switch-shop", "host": ["{{baseUrl}}"], "path": ["auth", "switch-shop"] }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/refresh", "host": ["{{baseUrl}}"], "path": ["auth", "refresh"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "My Shops",
+      "item": [
+        {
+          "name": "Create Shop",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('shopId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My New Shop\",\n  \"address\": \"123 Market St\",\n  \"phone\": \"+998901234567\",\n  \"email\": \"myshop@example.com\",\n  \"logoUrl\": \"\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/shop/shops", "host": ["{{baseUrl}}"], "path": ["shop", "shops"] }
+          }
+        },
+        {
+          "name": "List My Shops",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/shop/shops", "host": ["{{baseUrl}}"], "path": ["shop", "shops"] }
+          }
+        },
+        {
+          "name": "Get Shop Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/shop/shops/{{shopId}}", "host": ["{{baseUrl}}"], "path": ["shop", "shops", "{{shopId}}"] }
+          }
+        },
+        {
+          "name": "Update Shop",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Shop Name\",\n  \"address\": \"456 New Ave\",\n  \"phone\": \"+998907654321\",\n  \"email\": \"updated@example.com\",\n  \"logoUrl\": \"\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/shop/shops/{{shopId}}", "host": ["{{baseUrl}}"], "path": ["shop", "shops", "{{shopId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Staff Management",
+      "item": [
+        {
+          "name": "Add Staff Member",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('userId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ali Cashier\",\n  \"email\": \"ali@example.com\",\n  \"password\": \"password123\",\n  \"roles\": [\"cashier\"]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/shop/staff", "host": ["{{baseUrl}}"], "path": ["shop", "staff"] }
+          }
+        },
+        {
+          "name": "List Staff",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/shop/staff", "host": ["{{baseUrl}}"], "path": ["shop", "staff"] }
+          }
+        },
+        {
+          "name": "Remove Staff Member",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/shop/staff/{{userId}}", "host": ["{{baseUrl}}"], "path": ["shop", "staff", "{{userId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Create Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('productId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Espresso\",\n  \"description\": \"Double shot espresso\",\n  \"sku\": \"ESP-001\",\n  \"barcode\": \"1234567890\",\n  \"price\": 15000,\n  \"costPrice\": 5000,\n  \"taxRate\": 0,\n  \"isActive\": true,\n  \"trackStock\": true,\n  \"imageUrl\": \"\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"attributes\": {}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/products", "host": ["{{baseUrl}}"], "path": ["products"] }
+          }
+        },
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/products?page=1&limit=10&search=&categoryId=&active=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" },
+                { "key": "categoryId", "value": "" },
+                { "key": "active", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}"] }
+          }
+        },
+        {
+          "name": "Get Product by Barcode",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/products/barcode/1234567890", "host": ["{{baseUrl}}"], "path": ["products", "barcode", "1234567890"] }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Espresso Updated\",\n  \"price\": 18000,\n  \"isActive\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}"] }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('categoryId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Beverages\",\n  \"description\": \"Hot and cold drinks\",\n  \"parentId\": null\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] }
+          }
+        },
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "Receive Stock (Storage)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 100,\n  \"costPrice\": 5000,\n  \"margin\": 200,\n  \"sellingPrice\": 15000,\n  \"syncProductPrice\": true,\n  \"notes\": \"Initial stock\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/inventory/storage", "host": ["{{baseUrl}}"], "path": ["inventory", "storage"] }
+          }
+        },
+        {
+          "name": "Get Storage Batches for Product",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/storage/{{productId}}?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", "storage", "{{productId}}"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Warehouse Overview",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/warehouse?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", "warehouse"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Low Stock Alert",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/inventory/low-stock", "host": ["{{baseUrl}}"], "path": ["inventory", "low-stock"] }
+          }
+        },
+        {
+          "name": "Get Stock Level",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/inventory/{{productId}}/level", "host": ["{{baseUrl}}"], "path": ["inventory", "{{productId}}", "level"] }
+          }
+        },
+        {
+          "name": "Stock Movement History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/{{productId}}/movements?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", "{{productId}}", "movements"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Manual Stock Adjustment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 50,\n  \"notes\": \"Manual correction after stocktake\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/inventory/adjust", "host": ["{{baseUrl}}"], "path": ["inventory", "adjust"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('orderId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 2\n    }\n  ],\n  \"discountType\": \"percentage\",\n  \"discountValue\": 10,\n  \"paidByCash\": 30000,\n  \"paidByCard\": 0,\n  \"notes\": \"Regular order\",\n  \"customerId\": \"{{customerId}}\",\n  \"shiftId\": \"{{shiftId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders?isPrintCheck=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"],
+              "query": [{ "key": "isPrintCheck", "value": "false" }]
+            }
+          }
+        },
+        {
+          "name": "List Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/orders?page=1&limit=10&status=completed&from=2026-01-01&to=2026-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "status", "value": "completed" },
+                { "key": "from", "value": "2026-01-01" },
+                { "key": "to", "value": "2026-12-31" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/orders/{{orderId}}", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}"] }
+          }
+        },
+        {
+          "name": "Get Order Receipt",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/receipt", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "receipt"] }
+          }
+        },
+        {
+          "name": "Print Receipt",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/print", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "print"] }
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/cancel", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "cancel"] }
+          }
+        },
+        {
+          "name": "Mark Order Paid",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/mark-paid", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "mark-paid"] }
+          }
+        },
+        {
+          "name": "Return Items",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 1\n    }\n  ],\n  \"notes\": \"Customer not satisfied\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/return", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "return"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('paymentId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"method\": \"cash\",\n  \"amountTendered\": 50000,\n  \"referenceNumber\": \"\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payments", "host": ["{{baseUrl}}"], "path": ["payments"] }
+          }
+        },
+        {
+          "name": "Refund Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer returned items\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payments/{{paymentId}}/refund", "host": ["{{baseUrl}}"], "path": ["payments", "{{paymentId}}", "refund"] }
+          }
+        },
+        {
+          "name": "Get Payments for Order",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/payments/order/{{orderId}}", "host": ["{{baseUrl}}"], "path": ["payments", "order", "{{orderId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "Create Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('customerId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bobur Toshmatov\",\n  \"phone\": \"+998901234567\",\n  \"notes\": \"Regular customer\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/customers", "host": ["{{baseUrl}}"], "path": ["customers"] }
+          }
+        },
+        {
+          "name": "List Customers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/customers?page=1&limit=10&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Customer by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/customers/{{customerId}}", "host": ["{{baseUrl}}"], "path": ["customers", "{{customerId}}"] }
+          }
+        },
+        {
+          "name": "Lookup Customer by Phone",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/customers/phone/+998901234567", "host": ["{{baseUrl}}"], "path": ["customers", "phone", "+998901234567"] }
+          }
+        },
+        {
+          "name": "Get Customer Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{customerId}}/orders?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "{{customerId}}", "orders"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Customer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bobur Updated\",\n  \"phone\": \"+998909999999\",\n  \"notes\": \"VIP customer\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/customers/{{customerId}}", "host": ["{{baseUrl}}"], "path": ["customers", "{{customerId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Debts",
+      "item": [
+        {
+          "name": "List Debts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/debts?page=1&limit=10&status=pending&customerId=",
+              "host": ["{{baseUrl}}"],
+              "path": ["debts"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "status", "value": "pending" },
+                { "key": "customerId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Debt by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/debts/{{debtId}}", "host": ["{{baseUrl}}"], "path": ["debts", "{{debtId}}"] }
+          }
+        },
+        {
+          "name": "Repay Debt",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 10000,\n  \"note\": \"Partial payment received\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/debts/{{debtId}}/repay", "host": ["{{baseUrl}}"], "path": ["debts", "{{debtId}}", "repay"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Sales Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reports/summary?from=2026-04-01&to=2026-04-30",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "summary"],
+              "query": [
+                { "key": "from", "value": "2026-04-01" },
+                { "key": "to", "value": "2026-04-30" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sales by Day",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reports/sales-by-day?from=2026-04-01&to=2026-04-30",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "sales-by-day"],
+              "query": [
+                { "key": "from", "value": "2026-04-01" },
+                { "key": "to", "value": "2026-04-30" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sales by Hour",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reports/sales-by-hour?date=2026-04-21",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "sales-by-hour"],
+              "query": [{ "key": "date", "value": "2026-04-21" }]
+            }
+          }
+        },
+        {
+          "name": "Top Products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reports/top-products?from=2026-04-01&to=2026-04-30&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "top-products"],
+              "query": [
+                { "key": "from", "value": "2026-04-01" },
+                { "key": "to", "value": "2026-04-30" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sales by Cashier",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reports/by-cashier?from=2026-04-01&to=2026-04-30",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "by-cashier"],
+              "query": [
+                { "key": "from", "value": "2026-04-01" },
+                { "key": "to", "value": "2026-04-30" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sales by Payment Method",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/reports/payment-methods?from=2026-04-01&to=2026-04-30",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "payment-methods"],
+              "query": [
+                { "key": "from", "value": "2026-04-01" },
+                { "key": "to", "value": "2026-04-30" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Overview (Today KPIs)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/dashboard/overview", "host": ["{{baseUrl}}"], "path": ["dashboard", "overview"] }
+          }
+        },
+        {
+          "name": "Sales Trend",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/sales-trend?from=2026-04-01&to=2026-04-30",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "sales-trend"],
+              "query": [
+                { "key": "from", "value": "2026-04-01" },
+                { "key": "to", "value": "2026-04-30" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cashier Performance",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/cashier-performance?from=2026-04-01&to=2026-04-30",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "cashier-performance"],
+              "query": [
+                { "key": "from", "value": "2026-04-01" },
+                { "key": "to", "value": "2026-04-30" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Low Stock Alerts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/dashboard/low-stock", "host": ["{{baseUrl}}"], "path": ["dashboard", "low-stock"] }
+          }
+        }
+      ]
+    }
+  ]
+}

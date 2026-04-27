@@ -1,0 +1,498 @@
+{
+  "info": {
+    "name": "POS — Cashier",
+    "_postman_id": "pos-cashier-003",
+    "description": "Cashier module: shift management, quick-sale flow, product search, customer lookup, debts. All requests hit /api/v1. Set {{baseUrl}} = http://localhost:3000",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "preAuthToken", "value": "" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "shopId", "value": "" },
+    { "key": "shiftId", "value": "" },
+    { "key": "orderId", "value": "" },
+    { "key": "paymentId", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "customerId", "value": "" },
+    { "key": "debtId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Step 1 — Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.preAuthToken) {",
+                  "  pm.collectionVariables.set('preAuthToken', json.preAuthToken);",
+                  "  console.log('Available shops:', JSON.stringify(json.shops));",
+                  "  if (json.shops && json.shops.length > 0) {",
+                  "    pm.collectionVariables.set('shopId', json.shops[0].id);",
+                  "  }",
+                  "}",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"cashier@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Step 2 — Select Shop",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{preAuthToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopId\": \"{{shopId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/select-shop", "host": ["{{baseUrl}}"], "path": ["auth", "select-shop"] }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/refresh", "host": ["{{baseUrl}}"], "path": ["auth", "refresh"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shift",
+      "item": [
+        {
+          "name": "Open Shift",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('shiftId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"openingFloat\": 100000,\n  \"notes\": \"Morning shift\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/cashier/shift/open", "host": ["{{baseUrl}}"], "path": ["cashier", "shift", "open"] }
+          }
+        },
+        {
+          "name": "Get Active Shift",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('shiftId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/cashier/shift/active", "host": ["{{baseUrl}}"], "path": ["cashier", "shift", "active"] }
+          }
+        },
+        {
+          "name": "Close Shift",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"closingFloat\": 95000,\n  \"notes\": \"End of morning shift\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/shifts/{{shiftId}}/close", "host": ["{{baseUrl}}"], "path": ["shifts", "{{shiftId}}", "close"] }
+          }
+        },
+        {
+          "name": "My Shifts (History)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/shifts/my", "host": ["{{baseUrl}}"], "path": ["shifts", "my"] }
+          }
+        },
+        {
+          "name": "Get Shift by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/shifts/{{shiftId}}", "host": ["{{baseUrl}}"], "path": ["shifts", "{{shiftId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products (Search & Scan)",
+      "item": [
+        {
+          "name": "Search Products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/cashier/products/search?q=espresso",
+              "host": ["{{baseUrl}}"],
+              "path": ["cashier", "products", "search"],
+              "query": [{ "key": "q", "value": "espresso" }]
+            }
+          }
+        },
+        {
+          "name": "Scan Barcode",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('productId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/cashier/products/barcode/1234567890", "host": ["{{baseUrl}}"], "path": ["cashier", "products", "barcode", "1234567890"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Quick Sale Flow",
+      "description": "Step 1: Create Order → Step 2: Pay. Run these in sequence.",
+      "item": [
+        {
+          "name": "Step 1 — Create Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('orderId', json.id);",
+                  "console.log('Order ID saved:', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 2\n    }\n  ],\n  \"discountType\": null,\n  \"discountValue\": 0,\n  \"paidByCash\": 0,\n  \"paidByCard\": 0,\n  \"notes\": \"\",\n  \"customerId\": null,\n  \"shiftId\": \"{{shiftId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/cashier/sale/order", "host": ["{{baseUrl}}"], "path": ["cashier", "sale", "order"] }
+          }
+        },
+        {
+          "name": "Step 2 — Pay (Cash)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('paymentId', json.id);",
+                  "console.log('Change:', json.change);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"method\": \"cash\",\n  \"amountTendered\": 50000\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/cashier/sale/pay", "host": ["{{baseUrl}}"], "path": ["cashier", "sale", "pay"] }
+          }
+        },
+        {
+          "name": "Step 2 — Pay (Card)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"method\": \"card\",\n  \"referenceNumber\": \"TXN-20260421-001\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/cashier/sale/pay", "host": ["{{baseUrl}}"], "path": ["cashier", "sale", "pay"] }
+          }
+        },
+        {
+          "name": "Step 2 — Pay (Mobile Money)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"method\": \"mobile_money\",\n  \"referenceNumber\": \"PAYME-001\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/cashier/sale/pay", "host": ["{{baseUrl}}"], "path": ["cashier", "sale", "pay"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "List Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/orders?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/orders/{{orderId}}", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}"] }
+          }
+        },
+        {
+          "name": "Get Order Receipt",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/receipt", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "receipt"] }
+          }
+        },
+        {
+          "name": "Print Receipt",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/print", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "print"] }
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/cancel", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "cancel"] }
+          }
+        },
+        {
+          "name": "Mark Order Paid",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/mark-paid", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "mark-paid"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "Lookup Customer by Phone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('customerId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/cashier/customers/phone/+998901234567", "host": ["{{baseUrl}}"], "path": ["cashier", "customers", "phone", "+998901234567"] }
+          }
+        },
+        {
+          "name": "Create Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('customerId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Akbar Karimov\",\n  \"phone\": \"+998901234567\",\n  \"notes\": \"\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/customers", "host": ["{{baseUrl}}"], "path": ["customers"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Debts",
+      "item": [
+        {
+          "name": "My Debts (Cashier-owned)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/debts?page=1&limit=10&status=pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["debts"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "status", "value": "pending" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Debt by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/debts/{{debtId}}", "host": ["{{baseUrl}}"], "path": ["debts", "{{debtId}}"] }
+          }
+        },
+        {
+          "name": "Repay Debt",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000,\n  \"note\": \"Customer paid partially\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/debts/{{debtId}}/repay", "host": ["{{baseUrl}}"], "path": ["debts", "{{debtId}}", "repay"] }
+          }
+        }
+      ]
+    }
+  ]
+}

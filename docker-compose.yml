@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pos_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-izzatillo}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-a-z123456789}
+      POSTGRES_DB: ${DB_NAME:-pos}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-izzatillo} -d ${DB_NAME:-pos}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: pos_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    container_name: pos_redis_insight
+    restart: unless-stopped
+    ports:
+      - '8001:8001'
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:
