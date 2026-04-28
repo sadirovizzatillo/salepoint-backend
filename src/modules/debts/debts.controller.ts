@@ -79,6 +79,6 @@ export class DebtsController {
     @Param('customerId', ParseUUIDPipe) customerId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.smsService.sendDebtReminder(customerId, user.shopId!);
+    return this.smsService.sendDebtReminder(customerId, user.shopId!, user.sub);
   }
 }

@@ -12,6 +12,7 @@ export enum SmsStatus {
 @Index(['customerId'])
 @Index(['debtId'])
 @Index(['status'])
+@Index(['sentByUserId'])
 export class SmsLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -23,6 +24,9 @@ export class SmsLog {
   updatedAt: Date;
   @Column({ name: 'shop_id', type: 'uuid', nullable: true })
   shopId: string;
+
+  @Column({ name: 'sent_by_user_id', type: 'uuid', nullable: true })
+  sentByUserId: string | null;
 
   @Column({ name: 'customer_id', type: 'uuid', nullable: true })
   customerId: string;

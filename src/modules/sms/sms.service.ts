@@ -2,12 +2,14 @@ import { BadRequestException, Inject, Injectable, Logger, NotFoundException } fr
 import { InjectQueue } from '@nestjs/bull';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bull';
-import { Repository } from 'typeorm';
+import { Between, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 
 import { SmsLog, SmsStatus } from './entities/sms-log.entity';
 import { SMS_PROVIDER, SmsProvider } from './providers/sms.provider.interface';
 import { DevSmsProvider } from './providers/devsms.provider';
 import { SmsCallbackDto } from './dto/sms-callback.dto';
+import { SmsLogQueryDto } from './dto/sms-log-query.dto';
+import { paginate, PaginatedResult } from '@common/utils/pagination.util';
 import { Debt, DebtStatus } from '@modules/debts/entities/debt.entity';
 import { Shop } from '@modules/shops/entities/shop.entity';
 
@@ -35,7 +37,11 @@ export class SmsService {
     private readonly devSmsProvider: DevSmsProvider,
   ) {}
 
-  async sendDebtReminder(customerId: string, shopId: string): Promise<{ queued: true; smsLogId: string }> {
+  async sendDebtReminder(
+    customerId: string,
+    shopId: string,
+    sentByUserId?: string,
+  ): Promise<{ queued: true; smsLogId: string }> {
     const debts = await this.debtRepo.find({
       where: [
         { customerId, shopId, status: DebtStatus.PENDING },
@@ -67,6 +73,7 @@ export class SmsService {
 
     const smsLog = this.smsLogRepo.create({
       shopId,
+      sentByUserId: sentByUserId ?? null,
       customerId,
       phone,
       message,
@@ -112,6 +119,65 @@ export class SmsService {
 
     await this.smsLogRepo.save(log);
     this.logger.log(`Callback: sms_id=${dto.sms_id} → ${dto.status}`);
+  }
+
+  async findLogs(
+    shopId: string,
+    query: SmsLogQueryDto,
+  ): Promise<{
+    data: SmsLog[];
+    meta: PaginatedResult<SmsLog>['meta'] & {
+      totals: { all: number } & Record<SmsStatus, number>;
+      byStatus: Record<SmsStatus, number>;
+    };
+  }> {
+    const findWhere: Record<string, unknown> = { shopId };
+    if (query.userId) findWhere.sentByUserId = query.userId;
+    if (query.status) findWhere.status = query.status;
+
+    const from = query.from ? new Date(query.from) : null;
+    const to   = query.to   ? new Date(query.to)   : null;
+    if (from && to) findWhere.createdAt = Between(from, to);
+    else if (from)  findWhere.createdAt = MoreThanOrEqual(from);
+    else if (to)    findWhere.createdAt = LessThanOrEqual(to);
+
+    const [data, total] = await this.smsLogRepo.findAndCount({
+      where: findWhere,
+      order: { createdAt: 'DESC' },
+      skip:  query.skip,
+      take:  query.limit,
+    });
+
+    // Per-status counts ignore the status filter so the UI can render all
+    // four pills regardless of which one is currently selected.
+    const qb = this.smsLogRepo
+      .createQueryBuilder('s')
+      .select('s.status', 'status')
+      .addSelect('COUNT(*)::int', 'count')
+      .where('s.shop_id = :shopId', { shopId })
+      .groupBy('s.status');
+
+    if (query.userId) qb.andWhere('s.sent_by_user_id = :userId', { userId: query.userId });
+    if (from)         qb.andWhere('s.created_at >= :from', { from });
+    if (to)           qb.andWhere('s.created_at <= :to',   { to });
+
+    const breakdown = await qb.getRawMany<{ status: SmsStatus; count: number }>();
+
+    const byStatus: Record<SmsStatus, number> = {
+      [SmsStatus.PENDING]:   0,
+      [SmsStatus.SENT]:      0,
+      [SmsStatus.DELIVERED]: 0,
+      [SmsStatus.FAILED]:    0,
+    };
+    for (const row of breakdown) byStatus[row.status] = Number(row.count);
+
+    const totals = { all: total, ...byStatus };
+
+    const paginated = paginate(data, total, query);
+    return {
+      ...paginated,
+      meta: { ...paginated.meta, totals, byStatus },
+    };
   }
 
   async getBalance() {

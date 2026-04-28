@@ -227,6 +227,45 @@ export class AuthService {
     );
   }
 
+  async getMe(payload: JwtPayload) {
+    const user = await this.usersService.findById(payload.sub);
+
+    let shop: Shop | null = null;
+    let shopRoles: UserRole[] = [];
+    if (payload.shopId) {
+      const shopUser = await this.shopUserRepo.findOne({
+        where: { userId: user.id, shopId: payload.shopId, isActive: true },
+        relations: ['shop'],
+      });
+      shop = shopUser?.shop ?? null;
+      shopRoles = shopUser?.roles ?? [];
+    }
+
+    return {
+      id:          user.id,
+      email:       user.email,
+      name:        user.name,
+      roles:       payload.roles,
+      isActive:    user.isActive,
+      avatarUrl:   user.avatarUrl ?? null,
+      lastLoginAt: user.lastLoginAt ?? null,
+      sessionId:   payload.sessionId,
+      shop: shop
+        ? {
+            id:                    shop.id,
+            name:                  shop.name,
+            address:               shop.address ?? null,
+            phone:                 shop.phone ?? null,
+            email:                 shop.email ?? null,
+            logoUrl:               shop.logoUrl ?? null,
+            subscriptionStatus:    shop.subscriptionStatus,
+            subscriptionExpiresAt: shop.subscriptionExpiresAt ?? null,
+            roles:                 shopRoles,
+          }
+        : null,
+    };
+  }
+
   // ── Private helpers ────────────────────────────────────────────────────────
 
   private async issueTokens(

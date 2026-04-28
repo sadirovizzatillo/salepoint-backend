@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Headers,
   HttpCode,
   HttpStatus,
@@ -83,6 +84,14 @@ export class AuthController {
   @ApiOperation({ summary: 'Exchange refresh token for a new token pair' })
   refresh(@Body() dto: RefreshTokenDto, @Req() req: any) {
     return this.authService.refresh(dto.refreshToken, req.ip);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  @ApiOperation({ summary: 'Return the authenticated user with their active shop context' })
+  me(@CurrentUser() user: JwtPayload) {
+    return this.authService.getMe(user);
   }
 
   @ApiBearerAuth()
