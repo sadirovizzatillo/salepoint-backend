@@ -24,7 +24,7 @@ jobs:
             git pull origin main
             docker compose -f docker-compose.prod.yml up -d --build
             sleep 10
-            docker compose -f docker-compose.prod.yml exec -T app pnpm migration:run || true
+            docker compose -f docker-compose.prod.yml exec -T app node /app/node_modules/typeorm/cli.js migration:run -d /app/dist/database/data-source.js || true
             docker image prune -f
             echo "✅ Backend deployed"
           EOF
