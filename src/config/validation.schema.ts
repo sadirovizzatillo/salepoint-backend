@@ -49,6 +49,15 @@ export const validationSchema = Joi.object({
   DEVSMS_BASE_URL: Joi.string().default('https://devsms.uz/api'),
   DEVSMS_CALLBACK_URL: Joi.string().default('https://teztarqat.uz/sms/callback'),
 
+  DO_SPACES_ENDPOINT:     Joi.string().uri().required(),
+  DO_SPACES_REGION:       Joi.string().required(),
+  DO_SPACES_BUCKET:       Joi.string().required(),
+  DO_SPACES_KEY:          Joi.string().required(),
+  DO_SPACES_SECRET:       Joi.string().required(),
+  DO_SPACES_CDN_ENDPOINT: Joi.string().uri().required(),
+  DO_UPLOAD_URL_TTL:      Joi.number().default(300),
+  MAX_IMAGE_BYTES:        Joi.number().default(5_242_880),
+
   LOG_LEVEL: Joi.string()
     .valid('error', 'warn', 'info', 'debug', 'verbose')
     .default('debug'),

@@ -1,6 +1,8 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,6 +14,8 @@ import { Inject } from '@nestjs/common';
 import { Product, Category } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { RequestImageUploadDto } from './dto/image-upload.dto';
+import { StorageService } from '@modules/storage/storage.service';
 import {
   paginate,
   PaginatedResult,
@@ -21,6 +25,7 @@ import {
 @Injectable()
 export class ProductsService {
   private readonly CACHE_TTL = 60;
+  private readonly logger = new Logger(ProductsService.name);
 
   constructor(
     @InjectRepository(Product)
@@ -29,7 +34,17 @@ export class ProductsService {
     private readonly categoryRepo: Repository<Category>,
     @Inject(CACHE_MANAGER)
     private readonly cache: Cache,
+    private readonly storage: StorageService,
   ) {}
+
+  private withImageUrl<T extends { imageUrl?: string | null } | null | undefined>(
+    product: T,
+  ): T {
+    if (product && product.imageUrl) {
+      return { ...product, imageUrl: this.storage.publicUrl(product.imageUrl) };
+    }
+    return product;
+  }
 
   private cacheKey(shopId: string | null, id: string): string {
     return shopId ? `shop:${shopId}:product:${id}` : `product:${id}`;
@@ -42,7 +57,7 @@ export class ProductsService {
     const product = this.productRepo.create({ ...dto, shopId });
     const saved = await this.productRepo.save(product);
     await this.cache.del(this.cacheKey(shopId, saved.id));
-    return saved;
+    return this.withImageUrl(saved);
   }
 
   async findAll(
@@ -66,10 +81,10 @@ export class ProductsService {
     if (query.active !== undefined) qb.andWhere('p.isActive = :a', { a: query.active });
 
     const [items, total] = await qb.skip(query.skip).take(query.limit).getManyAndCount();
-    return paginate(items, total, query);
+    return paginate(items.map((p) => this.withImageUrl(p)), total, query);
   }
 
-  async findById(id: string, shopId?: string | null): Promise<Product> {
+  private async findRawById(id: string, shopId?: string | null): Promise<Product> {
     const key = this.cacheKey(shopId ?? null, id);
     const cached = await this.cache.get<Product>(key);
     if (cached) return cached;
@@ -89,27 +104,89 @@ export class ProductsService {
     return product;
   }
 
+  async findById(id: string, shopId?: string | null): Promise<Product> {
+    const product = await this.findRawById(id, shopId);
+    return this.withImageUrl(product);
+  }
+
   async findByBarcode(barcode: string, shopId: string): Promise<Product> {
     const product = await this.productRepo.findOne({
       where: { barcode, shopId },
       relations: ['category'],
     });
     if (!product) throw new NotFoundException('Product not found');
-    return product;
+    return this.withImageUrl(product);
   }
 
   async update(id: string, dto: UpdateProductDto, shopId: string): Promise<Product> {
-    const product = await this.findById(id, shopId);
+    const product = await this.findRawById(id, shopId);
     Object.assign(product, dto);
     const saved = await this.productRepo.save(product);
     await this.cache.del(this.cacheKey(shopId, id));
-    return saved;
+    return this.withImageUrl(saved);
   }
 
   async remove(id: string, shopId: string): Promise<void> {
-    await this.findById(id, shopId);
+    const product = await this.findRawById(id, shopId);
     await this.productRepo.softDelete(id);
+    if (product.imageUrl) {
+      this.storage.deleteObject(product.imageUrl).catch((err) => {
+        this.logger.warn(`Failed to delete image ${product.imageUrl}: ${err.message}`);
+      });
+    }
     await this.cache.del(this.cacheKey(shopId, id));
+  }
+
+  // ── Image upload (presigned-URL flow) ──────────────────────────────────────
+
+  async createImageUploadUrl(
+    productId: string,
+    shopId: string,
+    dto: RequestImageUploadDto,
+  ): Promise<{ uploadUrl: string; key: string; expiresIn: number }> {
+    await this.findRawById(productId, shopId);
+    const ext = dto.contentType === 'image/jpeg' ? 'jpg' : dto.contentType.split('/')[1];
+    const key = this.storage.buildProductKey(shopId, productId, ext);
+    const { uploadUrl, expiresIn } = await this.storage.createPresignedPut({
+      key,
+      contentType: dto.contentType,
+    });
+    return { uploadUrl, key, expiresIn };
+  }
+
+  async confirmImage(productId: string, shopId: string, key: string): Promise<Product> {
+    const expectedPrefix = `shops/${shopId}/products/${productId}/`;
+    if (!key.startsWith(expectedPrefix)) {
+      throw new ForbiddenException('Key does not belong to this product');
+    }
+    await this.storage.headObject(key);
+
+    const product = await this.findRawById(productId, shopId);
+    const oldKey = product.imageUrl;
+    product.imageUrl = key;
+    const saved = await this.productRepo.save(product);
+
+    if (oldKey && oldKey !== key) {
+      this.storage.deleteObject(oldKey).catch((err) => {
+        this.logger.warn(`Failed to delete old image ${oldKey}: ${err.message}`);
+      });
+    }
+    await this.cache.del(this.cacheKey(shopId, productId));
+    return this.withImageUrl(saved);
+  }
+
+  async removeImage(productId: string, shopId: string): Promise<Product> {
+    const product = await this.findRawById(productId, shopId);
+    const oldKey = product.imageUrl;
+    if (!oldKey) return this.withImageUrl(product);
+
+    product.imageUrl = undefined;
+    const saved = await this.productRepo.save(product);
+    this.storage.deleteObject(oldKey).catch((err) => {
+      this.logger.warn(`Failed to delete image ${oldKey}: ${err.message}`);
+    });
+    await this.cache.del(this.cacheKey(shopId, productId));
+    return this.withImageUrl(saved);
   }
 
   // ── Categories ─────────────────────────────────────────────────────────────

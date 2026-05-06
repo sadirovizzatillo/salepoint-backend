@@ -20,6 +20,8 @@
     "seed": "ts-node src/database/seeds/index.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1043.0",
+    "@aws-sdk/s3-request-presigner": "^3.1043.0",
     "@fastify/compress": "^6.5.0",
     "@fastify/cors": "^8.4.2",
     "@fastify/helmet": "^11.1.1",

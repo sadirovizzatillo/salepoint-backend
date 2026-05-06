@@ -14,6 +14,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto, ProductQueryDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ConfirmImageDto, RequestImageUploadDto } from './dto/image-upload.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { SubscriptionGuard } from '@common/guards/subscription.guard';
@@ -67,5 +68,37 @@ export class ProductsController {
   @Roles(UserRole.ADMIN, UserRole.SHOP_OWNER)
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
     return this.productsService.remove(id, user.shopId!);
+  }
+
+  @Post(':id/image/upload-url')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.SHOP_OWNER)
+  @ApiOperation({ summary: 'Get a pre-signed URL for direct image upload to Spaces' })
+  requestImageUploadUrl(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RequestImageUploadDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.productsService.createImageUploadUrl(id, user.shopId!, dto);
+  }
+
+  @Patch(':id/image')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.SHOP_OWNER)
+  @ApiOperation({ summary: 'Confirm an uploaded image and attach it to the product' })
+  confirmImage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ConfirmImageDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.productsService.confirmImage(id, user.shopId!, dto.key);
+  }
+
+  @Delete(':id/image')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.SHOP_OWNER)
+  @ApiOperation({ summary: 'Remove product image' })
+  removeImage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.productsService.removeImage(id, user.shopId!);
   }
 }

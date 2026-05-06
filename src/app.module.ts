@@ -14,6 +14,7 @@ import jwtConfig from '@config/jwt.config';
 import throttleConfig from '@config/throttle.config';
 import printerConfig from '@config/printer.config';
 import smsConfig from '@config/sms.config';
+import storageConfig from '@config/storage.config';
 
 import { validationSchema } from '@config/validation.schema';
 import { typeOrmFactory } from '@database/typeorm.factory';
@@ -37,6 +38,7 @@ import { ShiftsModule } from '@modules/shifts/shifts.module';
 import { SessionsModule } from '@modules/sessions/sessions.module';
 import { DebtsModule } from '@modules/debts/debts.module';
 import { SmsModule } from '@modules/sms/sms.module';
+import { StorageModule } from '@modules/storage/storage.module';
 
 import { CashierModule } from '@modules/cashier/cashier.module';
 import { DashboardModule } from '@modules/dashboard/dashboard.module';
@@ -47,7 +49,7 @@ import { ConsoleModule } from '@modules/console/console.module';
     // ── Config ────────────────────────────────────────────────
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig, redisConfig, jwtConfig, throttleConfig, printerConfig, smsConfig],
+      load: [appConfig, databaseConfig, redisConfig, jwtConfig, throttleConfig, printerConfig, smsConfig, storageConfig],
       validationSchema,
       validationOptions: { abortEarly: true },
     }),
@@ -92,6 +94,7 @@ import { ConsoleModule } from '@modules/console/console.module';
     ReportsModule,
     DebtsModule,
     SmsModule,
+    StorageModule,
 
     // ── Printer ───────────────────────────────────────────────
     PrinterModule,
