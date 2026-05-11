@@ -50,7 +50,7 @@ export class StorageService {
       ACL: 'public-read',
     });
     const expiresIn = this.cfg.uploadUrlTtl;
-    const uploadUrl = await getSignedUrl(this.s3, command, { expiresIn });
+    const uploadUrl = await getSignedUrl(this.s3, command, { expiresIn, unhoistableHeaders: new Set(['x-amz-acl']) });
     return { uploadUrl, expiresIn };
   }
 
