@@ -1,10 +1,10 @@
 import {
   IsArray,
-  IsInt,
+  IsNumber,
   IsOptional,
+  IsPositive,
   IsString,
   IsUUID,
-  Min,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -15,9 +15,12 @@ export class ReturnItemDto {
   @IsUUID()
   productId: string;
 
-  @ApiProperty({ minimum: 1 })
-  @IsInt()
-  @Min(1)
+  @ApiProperty({
+    description: 'Quantity returned. Up to 3 decimals for kg/meter products.',
+    minimum: 0.001,
+  })
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @IsPositive()
   quantity: number;
 }
 

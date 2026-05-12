@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
@@ -9,6 +10,7 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationQueryDto } from '@common/utils/pagination.util';
+import { UnitType } from '../enums/unit-type.enum';
 
 export class ProductQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional()
@@ -58,6 +60,15 @@ export class CreateProductDto {
   @IsNumber()
   @Min(0)
   taxRate?: number;
+
+  @ApiPropertyOptional({
+    enum: UnitType,
+    default: UnitType.PIECE,
+    description: 'Sold by piece (count), meter (length) or kilogram (weight)',
+  })
+  @IsOptional()
+  @IsEnum(UnitType)
+  unitType?: UnitType;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()

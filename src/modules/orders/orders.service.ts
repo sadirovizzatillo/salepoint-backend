@@ -14,6 +14,7 @@ import { Shift } from '@modules/shifts/entities/shift.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ReturnOrderDto } from './dto/return-order.dto';
 import { ProductsService } from '@modules/products/products.service';
+import { assertQuantityForUnit } from '@modules/products/utils/quantity.util';
 import { InventoryService } from '@modules/inventory/inventory.service';
 import { DebtsService } from '@modules/debts/debts.service';
 import {
@@ -23,6 +24,7 @@ import {
 } from '@common/utils/pagination.util';
 import { ReceiptDto } from './dto/receipt.dto';
 import { PrinterService } from '@modules/printer/printer.service';
+import { UnitType } from '@modules/products/enums/unit-type.enum';
 
 @Injectable()
 export class OrdersService {
@@ -56,6 +58,8 @@ export class OrdersService {
         const product = await this.productsService.findById(line.productId, shopId);
         if (!product.isActive)
           throw new BadRequestException(`Product "${product.name}" is inactive`);
+
+        assertQuantityForUnit(product, line.quantity);
 
         if (product.trackStock) {
           await this.inventoryService.reserveStock(line.productId, line.quantity, em);
@@ -147,7 +151,16 @@ export class OrdersService {
       this.eventEmitter.emit('order.created', saved);
 
       if (isPrintCheck) {
-        this.printerService.printReceipt(saved).catch(() => void 0);
+        // Reload with product relation so the printer can render unit suffixes
+        em.getRepository(Order)
+          .findOne({
+            where: { id: saved.id },
+            relations: ['items', 'items.product', 'cashier', 'customer'],
+          })
+          .then((withRelations) => {
+            if (withRelations) this.printerService.printReceipt(withRelations);
+          })
+          .catch(() => void 0);
       }
 
       return saved;
@@ -257,6 +270,8 @@ export class OrdersService {
             `Cannot return more than ordered quantity for product ${line.productId}`,
           );
         }
+        const product = await this.productsService.findById(line.productId, shopId);
+        assertQuantityForUnit(product, line.quantity);
       }
 
       for (const line of dto.items) {
@@ -281,7 +296,7 @@ export class OrdersService {
   async printOrder(id: string, shopId: string): Promise<void> {
     const order = await this.orderRepo.findOne({
       where: { id, shopId },
-      relations: ['items', 'cashier', 'customer'],
+      relations: ['items', 'items.product', 'cashier', 'customer'],
     });
     if (!order) throw new NotFoundException('Order not found');
     if (![OrderStatus.CONFIRMED, OrderStatus.PAID].includes(order.status)) {
@@ -293,7 +308,7 @@ export class OrdersService {
   async getReceipt(id: string, shopId: string): Promise<ReceiptDto> {
     const order = await this.orderRepo.findOne({
       where: { id, shopId },
-      relations: ['items', 'cashier', 'customer'],
+      relations: ['items', 'items.product', 'cashier', 'customer'],
     });
     if (!order) throw new NotFoundException('Order not found');
     if (![OrderStatus.CONFIRMED, OrderStatus.PAID].includes(order.status)) {
@@ -310,7 +325,8 @@ export class OrdersService {
       customer:       order.customer?.name,
       items: order.items.map((item) => ({
         name:      item.name,
-        quantity:  item.quantity,
+        quantity:  Number(item.quantity),
+        unitType:  item.product?.unitType ?? UnitType.PIECE,
         price:     Number(item.price),
         taxRate:   Number(item.taxRate),
         lineTotal: Number(item.lineTotal),

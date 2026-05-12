@@ -10,6 +10,7 @@ import { BaseTimestampEntity } from '@database/entities/base.entity';
 import { Product } from '@modules/products/entities/product.entity';
 import { User } from '@modules/users/entities/user.entity';
 import { Customer } from '@modules/customers/entities/customer.entity';
+import { numericTransformer } from '@common/utils/numeric-transformer';
 
 export enum OrderStatus {
   PENDING   = 'pending',
@@ -120,7 +121,12 @@ export class OrderItem extends BaseTimestampEntity {
   @Column({ type: 'numeric', precision: 12, scale: 2 })
   price: number; // snapshot
 
-  @Column({ type: 'int' })
+  @Column({
+    type: 'numeric',
+    precision: 14,
+    scale: 3,
+    transformer: numericTransformer,
+  })
   quantity: number;
 
   @Column({ name: 'tax_rate', type: 'numeric', precision: 5, scale: 2, default: 0 })

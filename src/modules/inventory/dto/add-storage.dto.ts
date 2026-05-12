@@ -1,8 +1,8 @@
 import {
   IsBoolean,
-  IsInt,
   IsNumber,
   IsOptional,
+  IsPositive,
   IsString,
   IsUUID,
   Min,
@@ -14,9 +14,13 @@ export class AddStorageDto {
   @IsUUID()
   productId: string;
 
-  @ApiProperty({ description: 'Mahsulot miqdori — number of units received', minimum: 1 })
-  @IsInt()
-  @Min(1)
+  @ApiProperty({
+    description:
+      'Mahsulot miqdori — units received. Up to 3 decimals for kg/meter products.',
+    minimum: 0.001,
+  })
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @IsPositive()
   quantity: number;
 
   @ApiProperty({ description: 'Mahsulot tan narxi — cost price per unit', minimum: 0 })

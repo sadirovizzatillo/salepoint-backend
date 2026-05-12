@@ -14,6 +14,7 @@ import { StorageItem } from './entities/storage.entity';
 import { AddStorageDto } from './dto/add-storage.dto';
 import { AdjustStockDto } from './dto/adjust-stock.dto';
 import { Product } from '@modules/products/entities/product.entity';
+import { assertQuantityForUnit } from '@modules/products/utils/quantity.util';
 import {
   paginate,
   PaginatedResult,
@@ -40,6 +41,8 @@ export class InventoryService {
       where: { id: dto.productId, shopId },
     });
     if (!product) throw new NotFoundException('Product not found');
+
+    assertQuantityForUnit(product, dto.quantity);
 
     const sellingPrice =
       dto.sellingPrice ?? Number((dto.costPrice * (1 + dto.margin / 100)).toFixed(2));
@@ -244,6 +247,12 @@ export class InventoryService {
       where: { shopId, productId: dto.productId },
     });
     if (!level) throw new NotFoundException('Stock record not found');
+
+    const product = await this.productRepo.findOne({
+      where: { id: dto.productId, shopId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+    assertQuantityForUnit(product, dto.quantity);
 
     const delta = dto.quantity - level.quantityOnHand;
 

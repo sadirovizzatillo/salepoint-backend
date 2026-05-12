@@ -7,6 +7,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { BaseTimestampEntity } from '@database/entities/base.entity';
+import { UnitType } from '../enums/unit-type.enum';
 
 @Entity('categories')
 export class Category extends BaseTimestampEntity {
@@ -60,6 +61,14 @@ export class Product extends BaseTimestampEntity {
 
   @Column({ name: 'tax_rate', type: 'numeric', precision: 5, scale: 2, default: 0 })
   taxRate: number;
+
+  @Column({
+    name: 'unit_type',
+    type: 'enum',
+    enum: UnitType,
+    default: UnitType.PIECE,
+  })
+  unitType: UnitType;
 
   @Column({ name: 'is_active', default: true })
   isActive: boolean;

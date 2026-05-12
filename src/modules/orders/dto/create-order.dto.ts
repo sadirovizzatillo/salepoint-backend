@@ -1,9 +1,9 @@
 import {
   IsArray,
   IsEnum,
-  IsInt,
   IsNumber,
   IsOptional,
+  IsPositive,
   IsString,
   IsUUID,
   Min,
@@ -18,9 +18,13 @@ export class OrderItemDto {
   @IsUUID()
   productId: string;
 
-  @ApiProperty({ minimum: 1 })
-  @IsInt()
-  @Min(1)
+  @ApiProperty({
+    description:
+      'Quantity sold. Integer for piece-products, up to 3 decimals for kg/meter.',
+    minimum: 0.001,
+  })
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @IsPositive()
   quantity: number;
 }
 

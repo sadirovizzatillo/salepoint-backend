@@ -1,6 +1,9 @@
+import { UnitType } from '@modules/products/enums/unit-type.enum';
+
 export class ReceiptItemDto {
   name: string;
   quantity: number;
+  unitType: UnitType;
   price: number;
   taxRate: number;
   lineTotal: number;

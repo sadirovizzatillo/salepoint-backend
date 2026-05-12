@@ -2,7 +2,8 @@ import * as net from 'net';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ThermalPrinter, PrinterTypes, CharacterSet, BreakLine } from 'node-thermal-printer';
-import { Order } from '@modules/orders/entities/order.entity';
+import { Order, OrderItem } from '@modules/orders/entities/order.entity';
+import { UnitType } from '@modules/products/enums/unit-type.enum';
 
 @Injectable()
 export class PrinterService {
@@ -122,7 +123,7 @@ export class PrinterService {
     for (const item of order.items) {
       printer.tableCustom([
         { text: item.name,                       align: 'LEFT',   width: 0.5 },
-        { text: String(item.quantity),           align: 'CENTER', width: 0.15 },
+        { text: this.fmtQty(item),               align: 'CENTER', width: 0.15 },
         { text: this.fmt(item.price),            align: 'RIGHT',  width: 0.17 },
         { text: this.fmt(item.lineTotal),        align: 'RIGHT',  width: 0.18 },
       ]);
@@ -174,5 +175,17 @@ export class PrinterService {
 
   private fmt(value: number | string): string {
     return Number(value).toFixed(2);
+  }
+
+  // "3 шт" / "2.500 м" / "0.350 кг". Falls back to PIECE if product not loaded.
+  private fmtQty(item: OrderItem): string {
+    const qty = Number(item.quantity);
+    const unit = item.product?.unitType ?? UnitType.PIECE;
+    switch (unit) {
+      case UnitType.METER:    return `${qty.toFixed(3)} м`;
+      case UnitType.KILOGRAM: return `${qty.toFixed(3)} кг`;
+      case UnitType.PIECE:
+      default:                return `${qty} шт`;
+    }
   }
 }

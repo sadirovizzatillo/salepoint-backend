@@ -1,6 +1,7 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { BaseTimestampEntity } from '@database/entities/base.entity';
 import { Product } from '@modules/products/entities/product.entity';
+import { numericTransformer } from '@common/utils/numeric-transformer';
 
 export enum StockMovementType {
   PURCHASE  = 'purchase',  // stock received into storage
@@ -26,13 +27,34 @@ export class StockLevel extends BaseTimestampEntity {
   @JoinColumn({ name: 'product_id' })
   product: Product;
 
-  @Column({ name: 'quantity_on_hand', type: 'int', default: 0 })
+  @Column({
+    name: 'quantity_on_hand',
+    type: 'numeric',
+    precision: 14,
+    scale: 3,
+    default: 0,
+    transformer: numericTransformer,
+  })
   quantityOnHand: number;
 
-  @Column({ name: 'quantity_reserved', type: 'int', default: 0 })
+  @Column({
+    name: 'quantity_reserved',
+    type: 'numeric',
+    precision: 14,
+    scale: 3,
+    default: 0,
+    transformer: numericTransformer,
+  })
   quantityReserved: number;
 
-  @Column({ name: 'reorder_point', type: 'int', default: 5 })
+  @Column({
+    name: 'reorder_point',
+    type: 'numeric',
+    precision: 14,
+    scale: 3,
+    default: 5,
+    transformer: numericTransformer,
+  })
   reorderPoint: number;
 
   get quantityAvailable(): number {
@@ -59,10 +81,21 @@ export class StockMovement extends BaseTimestampEntity {
   @Column({ type: 'enum', enum: StockMovementType })
   type: StockMovementType;
 
-  @Column({ type: 'int' })
+  @Column({
+    type: 'numeric',
+    precision: 14,
+    scale: 3,
+    transformer: numericTransformer,
+  })
   quantity: number; // positive = in, negative = out
 
-  @Column({ name: 'quantity_after', type: 'int' })
+  @Column({
+    name: 'quantity_after',
+    type: 'numeric',
+    precision: 14,
+    scale: 3,
+    transformer: numericTransformer,
+  })
   quantityAfter: number;
 
   @Column({ nullable: true })

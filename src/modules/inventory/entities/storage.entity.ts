@@ -1,6 +1,7 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { BaseTimestampEntity } from '@database/entities/base.entity';
 import { Product } from '@modules/products/entities/product.entity';
+import { numericTransformer } from '@common/utils/numeric-transformer';
 
 @Entity('storage')
 @Index(['productId'])
@@ -17,11 +18,23 @@ export class StorageItem extends BaseTimestampEntity {
   product: Product;
 
   // Units remaining in this batch (decreases as items are sold)
-  @Column({ name: 'quantity', type: 'int' })
+  @Column({
+    name: 'quantity',
+    type: 'numeric',
+    precision: 14,
+    scale: 3,
+    transformer: numericTransformer,
+  })
   quantity: number;
 
   // Original quantity when this batch was received
-  @Column({ name: 'initial_quantity', type: 'int' })
+  @Column({
+    name: 'initial_quantity',
+    type: 'numeric',
+    precision: 14,
+    scale: 3,
+    transformer: numericTransformer,
+  })
   initialQuantity: number;
 
   // Mahsulot tan narxi — cost price per unit
