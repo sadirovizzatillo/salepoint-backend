@@ -1,5 +1,6 @@
 import { Column, Entity, Index } from 'typeorm';
 import { BaseTimestampEntity } from '@database/entities/base.entity';
+import { DiscountType } from '@modules/orders/enums/discount-type.enum';
 
 @Entity('customers')
 @Index(['shopId'])
@@ -22,6 +23,14 @@ export class Customer extends BaseTimestampEntity {
 
   @Column({ name: 'visit_count', type: 'int', default: 0 })
   visitCount: number;
+
+  // Applied automatically on every order for this customer unless the cashier
+  // overrides it. Null = no default discount.
+  @Column({ name: 'default_discount_type', type: 'enum', enum: DiscountType, nullable: true })
+  defaultDiscountType?: DiscountType;
+
+  @Column({ name: 'default_discount_value', type: 'numeric', precision: 8, scale: 2, nullable: true })
+  defaultDiscountValue?: number;
 
   @Column({ nullable: true, type: 'text' })
   notes?: string;

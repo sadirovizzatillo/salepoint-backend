@@ -4,13 +4,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import {
   StockLevel,
   StockMovement,
   StockMovementType,
 } from './entities/inventory.entity';
 import { StorageItem } from './entities/storage.entity';
+import { MarginType } from './enums/margin-type.enum';
 import { AddStorageDto } from './dto/add-storage.dto';
 import { AdjustStockDto } from './dto/adjust-stock.dto';
 import { Product } from '@modules/products/entities/product.entity';
@@ -32,6 +33,7 @@ export class InventoryService {
     private readonly storageRepo: Repository<StorageItem>,
     @InjectRepository(Product)
     private readonly productRepo: Repository<Product>,
+    private readonly dataSource: DataSource,
   ) {}
 
   // ── Storage (batch receiving) ──────────────────────────────────────────────
@@ -44,8 +46,12 @@ export class InventoryService {
 
     assertQuantityForUnit(product, dto.quantity);
 
-    const sellingPrice =
-      dto.sellingPrice ?? Number((dto.costPrice * (1 + dto.margin / 100)).toFixed(2));
+    const marginType = dto.marginType ?? MarginType.PERCENT;
+    const derivedSellingPrice =
+      marginType === MarginType.FIXED
+        ? dto.costPrice + dto.margin
+        : dto.costPrice * (1 + dto.margin / 100);
+    const sellingPrice = dto.sellingPrice ?? Number(derivedSellingPrice.toFixed(2));
 
     const storageItem = this.storageRepo.create({
       shopId,
@@ -54,6 +60,7 @@ export class InventoryService {
       initialQuantity: dto.quantity,
       costPrice: dto.costPrice,
       margin: dto.margin,
+      marginType,
       sellingPrice,
       notes: dto.notes,
     });
@@ -74,7 +81,10 @@ export class InventoryService {
     });
 
     if (dto.syncProductPrice !== false) {
-      await this.productRepo.update(dto.productId, { price: sellingPrice });
+      await this.productRepo.update(dto.productId, {
+        price: sellingPrice,
+        costPrice: dto.costPrice,
+      });
     }
 
     return saved;
@@ -243,65 +253,72 @@ export class InventoryService {
   }
 
   async adjust(dto: AdjustStockDto, performedBy: string, shopId: string): Promise<StockLevel> {
-    const level = await this.stockLevelRepo.findOne({
-      where: { shopId, productId: dto.productId },
-    });
-    if (!level) throw new NotFoundException('Stock record not found');
+    return this.dataSource.transaction(async (em) => {
+      const levelRepo    = em.getRepository(StockLevel);
+      const storageRepo  = em.getRepository(StorageItem);
+      const movementRepo = em.getRepository(StockMovement);
+      const productRepo  = em.getRepository(Product);
 
-    const product = await this.productRepo.findOne({
-      where: { id: dto.productId, shopId },
-    });
-    if (!product) throw new NotFoundException('Product not found');
-    assertQuantityForUnit(product, dto.quantity);
+      const level = await levelRepo.findOne({
+        where: { shopId, productId: dto.productId },
+      });
+      if (!level) throw new NotFoundException('Stock record not found');
 
-    const delta = dto.quantity - level.quantityOnHand;
+      const product = await productRepo.findOne({
+        where: { id: dto.productId, shopId },
+      });
+      if (!product) throw new NotFoundException('Product not found');
+      assertQuantityForUnit(product, dto.quantity);
 
-    if (delta > 0) {
-      await this.storageRepo.save(
-        this.storageRepo.create({
-          shopId,
-          productId: dto.productId,
-          quantity: delta,
-          initialQuantity: delta,
-          costPrice: 0,
-          margin: 0,
-          sellingPrice: 0,
-          notes: dto.notes ?? 'Manual stock adjustment (positive correction)',
-        }),
-      );
-    } else if (delta < 0) {
-      const batches = await this.storageRepo
-        .createQueryBuilder('s')
-        .setLock('pessimistic_write')
-        .where('s.productId = :productId', { productId: dto.productId })
-        .andWhere('s.quantity > 0')
-        .orderBy('s.createdAt', 'ASC')
-        .getMany();
+      const delta = dto.quantity - level.quantityOnHand;
 
-      let remaining = Math.abs(delta);
-      for (const batch of batches) {
-        if (remaining <= 0) break;
-        const deduct    = Math.min(batch.quantity, remaining);
-        batch.quantity -= deduct;
-        remaining      -= deduct;
-        await this.storageRepo.save(batch);
+      if (delta > 0) {
+        await storageRepo.save(
+          storageRepo.create({
+            shopId,
+            productId: dto.productId,
+            quantity: delta,
+            initialQuantity: delta,
+            costPrice: 0,
+            margin: 0,
+            sellingPrice: 0,
+            notes: dto.notes ?? 'Manual stock adjustment (positive correction)',
+          }),
+        );
+      } else if (delta < 0) {
+        const batches = await storageRepo
+          .createQueryBuilder('s')
+          .setLock('pessimistic_write')
+          .where('s.productId = :productId', { productId: dto.productId })
+          .andWhere('s.quantity > 0')
+          .orderBy('s.createdAt', 'ASC')
+          .getMany();
+
+        let remaining = Math.abs(delta);
+        for (const batch of batches) {
+          if (remaining <= 0) break;
+          const deduct    = Math.min(batch.quantity, remaining);
+          batch.quantity -= deduct;
+          remaining      -= deduct;
+          await storageRepo.save(batch);
+        }
       }
-    }
 
-    level.quantityOnHand = dto.quantity;
-    const saved = await this.stockLevelRepo.save(level);
+      level.quantityOnHand = dto.quantity;
+      const saved = await levelRepo.save(level);
 
-    await this.movementRepo.save({
-      shopId,
-      productId: dto.productId,
-      type: StockMovementType.ADJUST,
-      quantity: delta,
-      quantityAfter: dto.quantity,
-      notes: dto.notes,
-      performedBy,
+      await movementRepo.save({
+        shopId,
+        productId: dto.productId,
+        type: StockMovementType.ADJUST,
+        quantity: delta,
+        quantityAfter: dto.quantity,
+        notes: dto.notes,
+        performedBy,
+      });
+
+      return saved;
     });
-
-    return saved;
   }
 
   async findMovements(

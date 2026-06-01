@@ -11,6 +11,9 @@ import { Product } from '@modules/products/entities/product.entity';
 import { User } from '@modules/users/entities/user.entity';
 import { Customer } from '@modules/customers/entities/customer.entity';
 import { numericTransformer } from '@common/utils/numeric-transformer';
+import { DiscountType } from '../enums/discount-type.enum';
+
+export { DiscountType };
 
 export enum OrderStatus {
   PENDING   = 'pending',
@@ -18,11 +21,6 @@ export enum OrderStatus {
   PAID      = 'paid',
   REFUNDED  = 'refunded',
   CANCELLED = 'cancelled',
-}
-
-export enum DiscountType {
-  PERCENT = 'percent',
-  FIXED   = 'fixed',
 }
 
 @Entity('orders')

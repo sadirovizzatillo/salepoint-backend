@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -8,6 +9,7 @@ import {
   Min,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { MarginType } from '../enums/margin-type.enum';
 
 export class AddStorageDto {
   @ApiProperty({ description: 'Product to receive into storage' })
@@ -28,10 +30,24 @@ export class AddStorageDto {
   @Min(0)
   costPrice: number;
 
-  @ApiProperty({ description: 'Mahsulot foizi — markup percentage (e.g. 30 = 30%)', minimum: 0 })
+  @ApiProperty({
+    description:
+      'Mahsulot ustamasi — markup value. Interpreted by marginType: percent ' +
+      '(e.g. 30 = +30%) or fixed sum added on top of cost.',
+    minimum: 0,
+  })
   @IsNumber()
   @Min(0)
   margin: number;
+
+  @ApiPropertyOptional({
+    enum: MarginType,
+    default: MarginType.PERCENT,
+    description: 'How `margin` is applied: percent (default) or fixed sum.',
+  })
+  @IsOptional()
+  @IsEnum(MarginType)
+  marginType?: MarginType;
 
   @ApiPropertyOptional({
     description:

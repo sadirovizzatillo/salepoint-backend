@@ -2,6 +2,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { BaseTimestampEntity } from '@database/entities/base.entity';
 import { Product } from '@modules/products/entities/product.entity';
 import { numericTransformer } from '@common/utils/numeric-transformer';
+import { MarginType } from '../enums/margin-type.enum';
 
 @Entity('storage')
 @Index(['productId'])
@@ -41,12 +42,21 @@ export class StorageItem extends BaseTimestampEntity {
   @Column({ name: 'cost_price', type: 'numeric', precision: 12, scale: 2 })
   costPrice: number;
 
-  // Mahsulot foizi — markup percentage (e.g. 30 means 30%)
-  @Column({ name: 'margin', type: 'numeric', precision: 5, scale: 2, default: 0 })
+  // Mahsulot foizi yoki ustama — markup, interpreted by marginType:
+  //   percent → sellingPrice = costPrice * (1 + margin / 100)
+  //   fixed   → sellingPrice = costPrice + margin
+  @Column({ name: 'margin', type: 'numeric', precision: 12, scale: 2, default: 0 })
   margin: number;
 
+  @Column({
+    name: 'margin_type',
+    type: 'enum',
+    enum: MarginType,
+    default: MarginType.PERCENT,
+  })
+  marginType: MarginType;
+
   // Sotish narxi — selling price per unit (auto-calc or manual override)
-  // Formula: costPrice * (1 + margin / 100)
   @Column({ name: 'selling_price', type: 'numeric', precision: 12, scale: 2 })
   sellingPrice: number;
 

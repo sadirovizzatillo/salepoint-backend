@@ -10,6 +10,7 @@ import { Queue } from 'bull';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { Order, OrderItem, OrderStatus, DiscountType } from './entities/order.entity';
+import { Customer } from '@modules/customers/entities/customer.entity';
 import { Shift } from '@modules/shifts/entities/shift.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ReturnOrderDto } from './dto/return-order.dto';
@@ -33,6 +34,8 @@ export class OrdersService {
     private readonly orderRepo: Repository<Order>,
     @InjectRepository(OrderItem)
     private readonly itemRepo: Repository<OrderItem>,
+    @InjectRepository(Customer)
+    private readonly customerRepo: Repository<Customer>,
     @InjectQueue('orders')
     private readonly ordersQueue: Queue,
     private readonly productsService: ProductsService,
@@ -80,12 +83,25 @@ export class OrdersService {
         });
       }
 
+      // Cashier discount wins; otherwise fall back to the customer's default.
+      let discountType  = dto.discountType;
+      let discountValue = dto.discountValue;
+      if ((!discountType || !discountValue) && dto.customerId) {
+        const customer = await em.getRepository(Customer).findOne({
+          where: { id: dto.customerId, shopId },
+        });
+        if (customer?.defaultDiscountType && Number(customer.defaultDiscountValue) > 0) {
+          discountType  = customer.defaultDiscountType;
+          discountValue = Number(customer.defaultDiscountValue);
+        }
+      }
+
       let discountAmount = 0;
-      if (dto.discountType && dto.discountValue) {
+      if (discountType && discountValue) {
         discountAmount =
-          dto.discountType === DiscountType.PERCENT
-            ? subtotal * (dto.discountValue / 100)
-            : dto.discountValue;
+          discountType === DiscountType.PERCENT
+            ? subtotal * (discountValue / 100)
+            : discountValue;
         discountAmount = Math.min(discountAmount, subtotal);
       }
 
@@ -113,8 +129,8 @@ export class OrdersService {
         subtotal,
         taxAmount,
         discountAmount,
-        discountType: dto.discountType,
-        discountValue: dto.discountValue,
+        discountType,
+        discountValue,
         total,
         paidByCash,
         paidByCard,

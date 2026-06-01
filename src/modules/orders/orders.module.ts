@@ -8,10 +8,11 @@ import { OrderProcessor } from '@queue/processors/order.processor';
 import { ProductsModule } from '@modules/products/products.module';
 import { InventoryModule } from '@modules/inventory/inventory.module';
 import { DebtsModule } from '@modules/debts/debts.module';
+import { Customer } from '@modules/customers/entities/customer.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, OrderItem]),
+    TypeOrmModule.forFeature([Order, OrderItem, Customer]),
     BullModule.registerQueue({ name: 'orders' }),
     ProductsModule,
     InventoryModule,
